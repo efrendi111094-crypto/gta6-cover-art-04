@@ -3,21 +3,148 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cover Snap</title>
+<title>Vice Coast Cover Studio 4 — GTA-style cover art maker</title>
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-<main class="app">
-  <section class="controls">
-    <h1>Cover Snap</h1>
-    <p>A photo and a caption, made into a square cover.</p>
-    <label>Photo <input id="photo" type="file" accept="image/*"></label>
-    <label>Caption <input id="caption" type="text" maxlength="40" value="Sunset Heist"></label>
-    <button id="export" type="button">Export PNG 1080 x 1080</button>
-    <p id="status" role="status"></p>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">VC</span>
+    <div>
+      <h1>Vice Coast Cover Studio <span class="version">4</span></h1>
+      <p>Turn your photos into GTA-style poster cover art — offline, in your browser.</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <button id="compare-btn" type="button" title="Hold to see the original photos">Hold to Compare</button>
+    <button id="shuffle-btn" type="button" title="Shuffle the photos across the panels">Shuffle photos</button>
+    <button id="export-btn" type="button" class="primary" title="Export the cover as a PNG (X)">Export PNG</button>
+  </div>
+</header>
+
+<main class="workspace">
+  <section class="stage" aria-label="Cover preview">
+    <div class="size-tabs" role="tablist" aria-label="Export size">
+      <button type="button" data-size="wide" class="size-tab active" role="tab" aria-selected="true">1920 × 1080</button>
+      <button type="button" data-size="square" class="size-tab" role="tab" aria-selected="false">1080 × 1080</button>
+      <button type="button" data-size="portrait" class="size-tab" role="tab" aria-selected="false">1080 × 1350</button>
+    </div>
+    <div class="canvas-frame">
+      <canvas id="cover-canvas" width="960" height="540" aria-label="The cover, live preview"></canvas>
+      <div id="panel-hint" class="panel-hint">Click a panel to select it — drag to reframe, scroll to zoom</div>
+    </div>
+    <p id="status" class="status" role="status">Loading sample photos…</p>
   </section>
-  <canvas id="cover" width="1080" height="1080" aria-label="The cover"></canvas>
+
+  <aside class="controls" aria-label="Cover controls">
+    <section class="control-group" aria-label="Photos">
+      <h2>Photos</h2>
+      <label class="upload-btn">Upload your photos
+        <input id="upload-input" type="file" accept="image/*" multiple>
+      </label>
+      <div class="button-row photo-actions">
+        <button id="load-samples-btn" type="button">Load samples</button>
+        <button id="autofill-btn" type="button">Auto-fill panels</button>
+      </div>
+      <div id="photo-tray" class="photo-tray" role="listbox" aria-label="Photos for the selected panel"></div>
+      <p class="note">100% offline — your photos never leave this machine. Click a thumbnail to put it in the selected panel.</p>
+    </section>
+
+    <section class="control-group" aria-label="Layout">
+      <h2>Layout <span class="key-hint">1–6</span></h2>
+      <div id="layout-buttons" class="chip-grid"></div>
+    </section>
+
+    <section class="control-group" aria-label="Colour grade">
+      <h2>Colour grade <span class="key-hint">G</span></h2>
+      <div id="grade-buttons" class="chip-grid"></div>
+      <label class="check-row"><input id="posterize-toggle" type="checkbox"> Posterize <span class="dim">flat comic levels</span></label>
+    </section>
+
+    <section class="control-group" aria-label="Enhance">
+      <h2>Enhance <span class="key-hint">E</span></h2>
+      <label class="check-row"><input id="enhance-toggle" type="checkbox" checked> One-click Enhance <span class="dim">applies to preview + export</span></label>
+      <div id="enhance-sliders" class="sliders"></div>
+      <div class="preset-row" aria-label="Enhance presets">
+        <button type="button" data-preset="golden-hour">Golden Hour</button>
+        <button type="button" data-preset="neon-pop">Neon Pop</button>
+        <button type="button" data-preset="clean-bright">Clean &amp; Bright</button>
+      </div>
+    </section>
+
+    <section class="control-group" aria-label="Lettering">
+      <h2>Lettering</h2>
+      <label class="field">Title
+        <input id="title-input" type="text" maxlength="24" value="VICE HEAT" autocomplete="off">
+      </label>
+      <label class="field">Script subtitle
+        <input id="script-input" type="text" maxlength="48" value="Neon nights, fast cars" autocomplete="off">
+      </label>
+      <label class="field">Caption band
+        <input id="tagline-input" type="text" maxlength="48" value="LEONIDA · SUMMER 2026" autocomplete="off">
+      </label>
+      <label class="field">Corner ribbon
+        <input id="ribbon-input" type="text" maxlength="20" value="SAME TROUBLE" autocomplete="off">
+      </label>
+      <label class="field">Heat meter
+        <input id="heat-slider" type="range" min="1" max="5" step="1" value="5">
+        <span id="heat-label" class="dim">★★★★★ HEAT 95</span>
+      </label>
+      <label class="field">Title size
+        <input id="title-size-slider" type="range" min="50" max="130" step="1" value="100">
+        <span id="title-size-label" class="dim">100%</span>
+      </label>
+      <label class="field">Subtitle size
+        <input id="script-size-slider" type="range" min="50" max="150" step="1" value="100">
+        <span id="script-size-label" class="dim">100%</span>
+      </label>
+      <div class="field">Caption position
+        <div class="segmented" role="radiogroup" aria-label="Caption position">
+          <button type="button" data-caption-pos="top" role="radio" aria-checked="false">Top</button>
+          <button type="button" data-caption-pos="bottom" class="active" role="radio" aria-checked="true">Bottom</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="control-group" aria-label="Poster decorations">
+      <h2>Poster layers <span class="key-hint">D</span></h2>
+      <div id="decoration-toggles" class="toggle-grid"></div>
+    </section>
+
+    <section class="control-group" aria-label="Selected panel">
+      <h2>Selected panel</h2>
+      <p id="selected-panel-label" class="dim">Panel 1 of 5 · Pier sunset</p>
+      <label class="field">Panel grade
+        <select id="panel-grade-select"></select>
+      </label>
+      <label class="field">Panel zoom
+        <input id="panel-zoom-slider" type="range" min="100" max="250" step="1" value="100">
+        <span id="panel-zoom-label" class="dim">100%</span>
+      </label>
+      <div class="button-row">
+        <button id="fill-all-btn" type="button">Fill all panels with this photo</button>
+        <button id="span-btn" type="button">One photo across all panels</button>
+        <button id="reset-panel-btn" type="button">Reset crop / centre</button>
+      </div>
+    </section>
+
+    <section class="control-group" aria-label="Export">
+      <h2>Export</h2>
+      <div class="button-row">
+        <button id="export-all-btn" type="button">Export all 3 sizes</button>
+      </div>
+      <p class="note">PNG in 1920 × 1080, 1080 × 1080 and 1080 × 1350 — ready to post.</p>
+    </section>
+
+    <section class="control-group shortcuts" aria-label="Keyboard shortcuts">
+      <h2>Shortcuts</h2>
+      <p><b>1–6</b> layout · <b>G</b> grade · <b>E</b> enhance · <b>D</b> decorations · <b>X</b> export · <b>←→↑↓</b> nudge panel · <b>C</b> hold to compare</p>
+    </section>
+  </aside>
 </main>
+
+<div id="shot-status" data-ready="no" aria-hidden="true"></div>
+<pre id="test-report" hidden></pre>
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>
